@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CRay", "CRay\CRay.csproj", "{7207C0DB-C24B-6443-73EC-28BB8B6E5807}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CRay.Test", "CRay.Test\CRay.Test.csproj", "{F4C7374D-5A26-95DC-B11A-5BBC30BB86BF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7207C0DB-C24B-6443-73EC-28BB8B6E5807}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7207C0DB-C24B-6443-73EC-28BB8B6E5807}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7207C0DB-C24B-6443-73EC-28BB8B6E5807}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7207C0DB-C24B-6443-73EC-28BB8B6E5807}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4C7374D-5A26-95DC-B11A-5BBC30BB86BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4C7374D-5A26-95DC-B11A-5BBC30BB86BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4C7374D-5A26-95DC-B11A-5BBC30BB86BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4C7374D-5A26-95DC-B11A-5BBC30BB86BF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0135A67F-8250-4E81-A934-74745B22BCBE}
+	EndGlobalSection
+EndGlobal
