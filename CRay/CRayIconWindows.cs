@@ -1,34 +1,125 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
+using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace CRay;
 
-public sealed class CRayIconWindows : IDisposable {
+public sealed class CRayIconWindows : ICRayIcon {
+    public bool Visible {
+        get => visible;
+        set {
+            visible = value;
+
+            UpdateStatus();
+        }
+    }
+    bool visible = true;
+
+    public bool Attention {
+        get => attention;
+        set {
+            attention = value;
+
+            UpdateStatus();
+        }
+    }
+    bool attention;
+
+    public string IconsPath {
+        get => iconsPath;
+        set {
+            if(iconsPath == value)
+                return;
+
+            iconsPath = value;
+            
+            Invoke(() => {
+                _ = NativeWindows.DestroyIcon(icon);
+                _ = NativeWindows.DestroyIcon(attentionIcon);
+
+                icon = GetIcon(IconName);
+                attentionIcon = GetIcon(AttentionIconName);
+
+                ModifyIcon();
+            });
+        }
+    }
+    string iconsPath;
+
+
+    public string IconName {
+        get => iconName;
+        set {
+            if(iconName == value)
+                return;
+
+            iconName = value;
+
+            Invoke(() => {
+                _ = NativeWindows.DestroyIcon(icon);
+
+                icon = GetIcon(IconName);
+
+                ModifyIcon();
+            });
+        }
+    }
+    string iconName;
+
+    public string AttentionIconName {
+        get => attentionIconName;
+        set {
+            if(attentionIconName == value)
+                return;
+
+            attentionIconName = value;
+
+            Invoke(() => {
+                _ = NativeWindows.DestroyIcon(attentionIcon);
+
+                attentionIcon = GetIcon(AttentionIconName);
+
+                ModifyIcon();
+            });
+        }
+    }
+    string attentionIconName;
+
+    int status;
+
     nint hwnd;
 
     nint menu;
 
     nint icon;
 
+    nint attentionIcon;
+
     uint id = 1;
 
     readonly Dictionary<uint, Action> menuItemActions = [];
 
-    static int classId;
+    static int globalClassId;
+
+    int classId;
 
     Action invoke;
 
-    public unsafe CRayIconWindows(string file) {
-        Task.Factory.StartNew(() => Loop(file), TaskCreationOptions.LongRunning);
+    public unsafe CRayIconWindows(string iconsPath, string iconName) {
+        this.iconsPath = iconsPath;
+        this.iconName = iconName;
+
+        Task.Factory.StartNew(Loop, TaskCreationOptions.LongRunning);
     }
 
     public unsafe void AddMenuItem(string label, Action action) {
-        invoke += () => {
+        Invoke(() => {
             menuItemActions.Add(id, action);
 
             fixed(void* data = &Utf16StringMarshaller.GetPinnableReference(label)) {
@@ -41,15 +132,13 @@ public sealed class CRayIconWindows : IDisposable {
 
                 _ = NativeWindows.InsertMenuItemW(menu, id++, 1, &menuItemInfo);
             }
-        };
-
-        _ = NativeWindows.PostMessageW(hwnd, 0, 0, 0);
+        });
     }
 
-    public unsafe void Loop(string file) {
-        NativeWindows.WndProc procDelegate = Proc;
+    unsafe void Loop() {
+        nint proc = Marshal.GetFunctionPointerForDelegate((NativeWindows.WndProc)Proc);
 
-        nint proc = Marshal.GetFunctionPointerForDelegate(procDelegate);
+        classId = Interlocked.Increment(ref globalClassId);
 
         fixed(char* className = &Utf16StringMarshaller.GetPinnableReference($"CRAY-{classId}")) {
             NativeWindows.ClassEx classEx = new() {
@@ -62,11 +151,39 @@ public sealed class CRayIconWindows : IDisposable {
             NativeWindows.RegisterClassExW(&classEx);
         }
 
-        hwnd = NativeWindows.CreateWindowExW(0, $"CRAY-{classId++}", null, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        hwnd = NativeWindows.CreateWindowExW(0, $"CRAY-{classId}", null, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
         menu = NativeWindows.CreatePopupMenu();
 
-        using Image<Bgra32> image = Image.Load<Bgra32>(file);
+        icon = GetIcon(iconName);
+
+        ModifyIcon(true);
+
+        NativeWindows.Msg msg;
+
+        while(NativeWindows.GetMessageW(&msg, 0, 0, 0) != 0) {
+            _ = NativeWindows.TranslateMessage(&msg);
+
+            NativeWindows.DispatchMessageW(&msg);
+
+            invoke?.Invoke();
+            invoke = null;
+        }
+    }
+
+    void Invoke(Action action) {
+        invoke += action;
+
+        _ = NativeWindows.PostMessageW(hwnd, 0, 0, 0);
+    }
+
+    unsafe nint GetIcon(string name) {
+        string file = $"{name}.png";
+
+        if(!File.Exists(file))
+            return 0;
+
+        using Image<Bgra32> image = Image.Load<Bgra32>(Path.Combine(IconsPath, file));
 
         NativeWindows.BitmapInfo bitmapInfo = new() {
             Size = (uint)(sizeof(NativeWindows.BitmapInfo) - sizeof(nint)),
@@ -94,36 +211,11 @@ public sealed class CRayIconWindows : IDisposable {
             Mask = bitmap
         };
 
-        icon = NativeWindows.CreateIconIndirect(iconInfo);
+        nint icon = NativeWindows.CreateIconIndirect(iconInfo);
 
         _ = NativeWindows.DeleteObject(bitmap);
 
-        NativeWindows.NotifyIconData data = new() {
-            Size = (uint)sizeof(NativeWindows.NotifyIconData),
-            Hwnd = hwnd,
-            Flags = 3,
-            CallbackMessage = 0x400,
-            Icon = icon
-        };
-
-        _ = NativeWindows.Shell_NotifyIconW(0, data);
-
-        NativeWindows.Msg msg;
-
-        Console.WriteLine("loop");
-
-        while(NativeWindows.GetMessageW(&msg, 0, 0, 0) != 0) {
-            Console.WriteLine($"msg");
-
-            _ = NativeWindows.TranslateMessage(&msg);
-
-            NativeWindows.DispatchMessageW(&msg);
-
-            invoke?.Invoke();
-            invoke = null;
-        }
-
-        Console.WriteLine("End");
+        return icon;
     }
 
     unsafe nint Proc(nint hwnd, uint message, nint wParam, nint lParam) {
@@ -156,21 +248,60 @@ public sealed class CRayIconWindows : IDisposable {
         return NativeWindows.DefWindowProcW(hwnd, message, wParam, lParam);
     }
 
-    public unsafe void Dispose() {
-        invoke += () => {
-            NativeWindows.NotifyIconData data = new() {
-                Size = (uint)sizeof(NativeWindows.NotifyIconData),
-                Hwnd = hwnd
-            };
+    unsafe void UpdateStatus() {
+        Invoke(() => {
+            int status = Visible ? Attention ? 2 : 1 : 0;
 
-            _ = NativeWindows.Shell_NotifyIconW(2, data);
+            if(this.status == status)
+                return;
+
+            if(status == 0 && this.status > 0) {
+                NativeWindows.NotifyIconData data = new() {
+                    Size = (uint)sizeof(NativeWindows.NotifyIconData),
+                    Hwnd = hwnd
+                };
+
+                _ = NativeWindows.Shell_NotifyIconW(2, data);
+                
+                return;
+            }
+
+            ModifyIcon(status > 0 && this.status == 0);
+
+            this.status = status;
+        });
+    }
+
+    unsafe void ModifyIcon(bool create = false) {
+        if(!Visible)
+            return;
+
+        NativeWindows.NotifyIconData data = new() {
+            Size = (uint)sizeof(NativeWindows.NotifyIconData),
+            Hwnd = hwnd,
+            Flags = 3,
+            CallbackMessage = 0x400,
+            Icon = Attention ? attentionIcon : icon
+        };
+
+        _ = NativeWindows.Shell_NotifyIconW(create ? 0u : 1u, data);
+    }
+
+    public unsafe void Dispose() {
+        Invoke(invoke += () => {
+            if(Visible) {
+                NativeWindows.NotifyIconData data = new() {
+                    Size = (uint)sizeof(NativeWindows.NotifyIconData),
+                    Hwnd = hwnd
+                };
+
+                _ = NativeWindows.Shell_NotifyIconW(2, data);
+            }
 
             _ = NativeWindows.DestroyIcon(icon);
             _ = NativeWindows.DestroyMenu(menu);
             _ = NativeWindows.DestroyWindow(hwnd);
-            _ = NativeWindows.UnregisterClassW("CRAY", 0);
-        };
-
-        _ = NativeWindows.PostMessageW(hwnd, 0, 0, 0);
+            _ = NativeWindows.UnregisterClassW($"CRAY-{classId}", 0);
+        });
     }
 }
