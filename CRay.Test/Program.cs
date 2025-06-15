@@ -4,11 +4,15 @@ using CRay;
 
 Console.WriteLine("Hello, World!");
 
-CRayIcon.Init();
+if(OperatingSystem.IsWindows()) {
+    
+} else if(OperatingSystem.IsLinux()) {
+    CRayIconLinux.Initialize();
 
-CRayIcon icon = new();
+    CRayIconLinux icon = new();
 
-icon.AddMenuItem("Click", () => Console.WriteLine("Click"));
+    icon.AddMenuItem("Click", () => Console.WriteLine("Click"));
+}
 
 Console.WriteLine(2);
 

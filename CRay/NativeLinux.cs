@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 
 namespace CRay;
 
-static partial class Native {
+static partial class NativeLinux {
     const string LibraryName = "libayatana-appindicator3.so.1";
 
     [LibraryImport(LibraryName)]

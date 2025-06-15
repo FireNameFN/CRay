@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace CRay;
 
-public sealed class CRayIcon : IDisposable {
+public sealed class CRayIconLinux : ICRayIcon {
     public bool Visible {
         get => visible;
         set {
@@ -33,7 +33,7 @@ public sealed class CRayIcon : IDisposable {
 
             iconsPath = value;
 
-            Native.app_indicator_set_icon_theme_path(indicator, value);
+            NativeLinux.app_indicator_set_icon_theme_path(indicator, value);
         }
     }
     string iconsPath;
@@ -46,7 +46,7 @@ public sealed class CRayIcon : IDisposable {
 
             iconName = value;
 
-            Native.app_indicator_set_icon(indicator, value);
+            NativeLinux.app_indicator_set_icon(indicator, value);
         }    
     }
     string iconName;
@@ -59,7 +59,7 @@ public sealed class CRayIcon : IDisposable {
 
             attentionIconName = value;
 
-            Native.app_indicator_set_icon(indicator, value);
+            NativeLinux.app_indicator_set_icon(indicator, value);
         }    
     }
     string attentionIconName;
@@ -70,34 +70,34 @@ public sealed class CRayIcon : IDisposable {
 
     int status;
 
-    public CRayIcon(string iconsPath, string iconName) {
-        indicator = Native.app_indicator_new_with_path("test", iconName, 0, iconsPath);
+    public CRayIconLinux(string iconsPath, string iconName) {
+        indicator = NativeLinux.app_indicator_new_with_path("test", iconName, 0, iconsPath);
 
-        menu = Native.gtk_menu_new();
+        menu = NativeLinux.gtk_menu_new();
 
-        Native.app_indicator_set_menu(indicator, menu);
+        NativeLinux.app_indicator_set_menu(indicator, menu);
 
         UpdateStatus();
     }
 
-    public CRayIcon(string iconName = "icon") : this(AppContext.BaseDirectory, iconName) { }
+    public CRayIconLinux(string iconName = "icon") : this(AppContext.BaseDirectory, iconName) { }
 
-    public static void Init() {
-        Native.gtk_init(0, 0);
+    public static void Initialize() {
+        NativeLinux.gtk_init(0, 0);
 
-        Task.Factory.StartNew(Native.gtk_main, TaskCreationOptions.LongRunning);
+        Task.Factory.StartNew(NativeLinux.gtk_main, TaskCreationOptions.LongRunning);
     }
 
     public unsafe void AddMenuItem(string label, Action action) {
-        nint item = Native.gtk_menu_item_new_with_mnemonic(label);
+        nint item = NativeLinux.gtk_menu_item_new_with_mnemonic(label);
 
-        Native.gtk_widget_show(item);
+        NativeLinux.gtk_widget_show(item);
 
         nint handler = Marshal.GetFunctionPointerForDelegate(action);
 
-        Native.g_signal_connect_data(item, "button-press-event", handler, 0, 0, 0);
+        NativeLinux.g_signal_connect_data(item, "button-press-event", handler, 0, 0, 0);
 
-        Native.gtk_menu_shell_append(menu, item);
+        NativeLinux.gtk_menu_shell_append(menu, item);
     }
 
     void UpdateStatus() {
@@ -108,10 +108,12 @@ public sealed class CRayIcon : IDisposable {
 
         this.status = status;
 
-        Native.app_indicator_set_status(indicator, status);
+        NativeLinux.app_indicator_set_status(indicator, status);
     }
 
     public void Dispose() {
-        Native.gtk_widget_destroy(menu);
+        Visible = false;
+
+        NativeLinux.gtk_widget_destroy(menu);
     }
 }
