@@ -66,7 +66,8 @@ public sealed class CRayIconWindows : ICRayIcon {
 
                 icon = GetIcon(IconName);
 
-                ModifyIcon();
+                if(!Attention)
+                    ModifyIcon();
             });
         }
     }
@@ -85,7 +86,8 @@ public sealed class CRayIconWindows : ICRayIcon {
 
                 attentionIcon = GetIcon(AttentionIconName);
 
-                ModifyIcon();
+                if(Attention)
+                    ModifyIcon();
             });
         }
     }
