@@ -45,7 +45,7 @@ Use `Attention` to switch between usual icon and attention icon.
 
 Use `AddMenuItem()` for adding buttons to menu.
 
-Don't forget to call `Dispose()` when `CRayIcon` no more in use.
+Don't forget to call `Dispose()` when `CRayIcon` is no more in use.
 
 # Authors
 - [FN](https://github.com/FireNameFN)
