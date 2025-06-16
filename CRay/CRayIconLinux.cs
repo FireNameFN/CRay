@@ -80,8 +80,6 @@ public sealed class CRayIconLinux : ICRayIcon {
         UpdateStatus();
     }
 
-    public CRayIconLinux(string iconName = "icon") : this(AppContext.BaseDirectory, iconName) { }
-
     public static void Initialize() {
         NativeLinux.gtk_init(0, 0);
 
