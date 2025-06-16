@@ -201,11 +201,11 @@ public sealed class CRayIconWindows : ICRayIcon {
 
         nint bitmap = NativeWindows.CreateDIBSection(hdc, &bitmapInfo, 0, &bits, 0, 0);
 
-        Span<byte> span = stackalloc byte[image.Width * image.Height * sizeof(Bgra32)];
+        byte[] data = new byte[image.Width * image.Height * sizeof(Bgra32)];
         
-        image.CopyPixelDataTo(span);
+        image.CopyPixelDataTo(data);
 
-        span.CopyTo(new(bits.ToPointer(), span.Length));
+        Marshal.Copy(data, 0, bits, data.Length);
 
         NativeWindows.IconInfo iconInfo = new() {
             Icon = 1,
